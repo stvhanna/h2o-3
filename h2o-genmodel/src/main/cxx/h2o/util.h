@@ -5,6 +5,7 @@
 #include <string>
 #include <vector>
 #include <map>
+#include <cassert>
 
 namespace h2o {
 
@@ -69,6 +70,10 @@ inline bool mapContains(std::map<std::string,T> map, const std::string &name) {
 
     // found
     return true;
+}
+
+inline double longBitsToDouble(uint64_t bits) {
+    assert(0);
 }
 
 }

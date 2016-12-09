@@ -3,6 +3,9 @@
 
 #include "h2o/util.h"
 #include "h2o/MojoModel.h"
+#include "h2o/ByteBufferWrapper.h"
+#include "h2o/GenmodelBitSet.h"
+#include <cmath>
 
 namespace h2o {
 
@@ -11,7 +14,7 @@ private:
     enum NaSplitDir {
         None = 0,
 
-        NsdNaVsREST = 1,
+        NsdNaVsRest = 1,
         NsdNaLeft = 2,
         NsdNaRight = 3,
 
@@ -27,10 +30,8 @@ private:
     }
 
     static double scoreTree(const VectorOfBytes &tree, const std::vector<double> &row, int nclasses, bool computeLeafAssignment) {
-        assert(0);
-        /*
-        ByteBufferWrapper ab = new ByteBufferWrapper(tree);
-        GenmodelBitSet bs = null;  // Lazily set on hitting first group test
+        ByteBufferWrapper ab = ByteBufferWrapper(tree);
+        GenmodelBitSet bs;
         long bitsRight = 0;
         int level = 0;
         while (true) {
@@ -38,11 +39,11 @@ private:
             int colId = ab.get2();
             if (colId == 65535) return ab.get4f();
             int naSplitDir = ab.get1U();
-            boolean naVsRest = naSplitDir == NsdNaVsRest;
-            boolean leftward = naSplitDir == NsdNaLeft || naSplitDir == NsdLeft;
+            bool naVsRest = naSplitDir == NsdNaVsRest;
+            bool leftward = naSplitDir == NsdNaLeft || naSplitDir == NsdLeft;
             int lmask = (nodeType & 51);
             int equal = (nodeType & 12);  // Can be one of 0, 8, 12
-            assert equal != 4;  // no longer supported
+            assert(equal != 4);  // no longer supported
 
             float splitVal = -1;
             if (!naVsRest) {
@@ -52,7 +53,7 @@ private:
                     splitVal = ab.get4f();  // Get the float to compare
                 } else {
                     // Bitset test
-                    if (bs == null) bs = new GenmodelBitSet(0);
+//                    if (bs == null) bs = new GenmodelBitSet(0);
                     if (equal == 8)
                         bs.fill2(tree, ab);
                     else
@@ -61,7 +62,7 @@ private:
             }
 
             double d = row[colId];
-            if (Double.isNaN(d)? !leftward : !naVsRest && (equal == 0? d >= splitVal : bs.contains((int)d))) {
+            if (std::isnan(d) ? !leftward : !naVsRest && (equal == 0? d >= splitVal : bs.contains((int)d))) {
                 // go RIGHT
                 switch (lmask) {
                     case 0:  ab.skip(ab.get1U());  break;
@@ -71,7 +72,9 @@ private:
                     case 16: ab.skip(nclasses < 256? 1 : 2);  break;  // Small leaf
                     case 48: ab.skip(4);  break;  // skip the prediction
                     default:
-                        assert false : "illegal lmask value " + lmask + " in tree " + Arrays.toString(tree);
+                        char message[1024];
+                        snprintf(message, sizeof(message)-1, "scoreTree: illegal lmask value 0x%x in tree", lmask);
+                        throw std::invalid_argument(message);
                 }
                 if (computeLeafAssignment && level < 64) bitsRight |= 1 << level;
                 lmask = (nodeType & 0xC0) >> 2;  // Replace leftmask with the rightmask
@@ -85,13 +88,12 @@ private:
             if ((lmask & 16) != 0) {
                 if (computeLeafAssignment) {
                     bitsRight |= 1 << level;  // mark the end of the tree
-                    return Double.longBitsToDouble(bitsRight);
+                    return longBitsToDouble(bitsRight);
                 } else {
                     return ab.get4f();
                 }
             }
         }
-        */
     }
 
     static double scoreTree(const VectorOfBytes &tree, const std::vector<double> &row, int nclasses) {
