@@ -36,8 +36,10 @@ public:
     }
 
     float get4f() {
+        static_assert(sizeof(float) == 4);
         uint8_t buf[4];
 #if _LIBCPP_BIG_ENDIAN == 1
+#error Note:  Big endian never tested.  Remove this error and test.
         buf[3] = get1U();
         buf[2] = get1U();
         buf[1] = get1U();
