@@ -43,7 +43,9 @@ private:
             bool leftward = naSplitDir == NsdNaLeft || naSplitDir == NsdLeft;
             int lmask = (nodeType & 51);
             int equal = (nodeType & 12);  // Can be one of 0, 8, 12
-            assert(equal != 4);  // no longer supported
+            if (equal == 4) {
+                throw std::invalid_argument("scoreTree: illegal equal of 4");
+            }
 
             float splitVal = -1;
             if (!naVsRest) {
