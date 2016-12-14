@@ -36,7 +36,7 @@ public:
     }
 
     float get4f() {
-        static_assert(sizeof(float) == 4);
+        static_assert(sizeof(float) == 4, "Size of float is not equal to 4 bytes");
         uint8_t buf[4];
 #if _LIBCPP_BIG_ENDIAN == 1
 #error Note:  Big endian never tested.  Remove this error and test.
