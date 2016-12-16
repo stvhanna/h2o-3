@@ -59,8 +59,7 @@ public:
             assert(0);
             // GenModel.correctProbabilities(preds, _priorClassDistrib, _modelClassDistrib);
         }
-        assert(0);
-        // preds[0] = GenModel.getPrediction(preds, _priorClassDistrib, row, _defaultThreshold);
+        preds[0] = GenModel::getPrediction(preds, priorClassDistrib(), row, defaultThreshold());
         return preds;
     }
 

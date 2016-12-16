@@ -2,6 +2,7 @@
 #define H2O_MOJOMODEL_H 1
 
 #include "h2o/util.h"
+#include "h2o/ByteBufferWrapper.h"
 #include "h2o/GenModel.h"
 #include "h2o/MojoReaderBackend.h"
 #include "h2o/ModelCategory.h"
@@ -53,11 +54,13 @@ private:
     int _nfeatures;
     int _nclasses;
     bool _balanceClasses;
-//    double _defaultThreshold;
-//    std::vector<double> _priorClassDistrib;
+    double _defaultThreshold;
+    std::vector<double> _priorClassDistrib;
 //    std::vector<double> _modelClassDistrib;
 
     void parseModelInfo(MojoReaderBackend &be) {
+        ByteBufferWrapper::performSanityChecks();
+
         BufferedReader br = be.getTextFile("model.ini");
         std::string line;
 
@@ -165,9 +168,12 @@ private:
 protected:
     void readCommon(MojoReaderBackend &be) {
         parseModelInfo(be);
+        _category = ModelCategory::valueOf(safeGetStringProperty("category"));
         _nfeatures = safeGetIntProperty("n_features");
         _nclasses = safeGetIntProperty("n_classes");
         _balanceClasses = safeGetBoolProperty("balance_classes");
+        _defaultThreshold = safeGetDoubleProperty("default_threshold");
+        _priorClassDistrib = safeGetDoubleArrayProperty("prior_class_distrib");
     }
 
     bool safeGetBoolProperty(const std::string &name) {
@@ -196,6 +202,49 @@ protected:
         return value;
     }
 
+// # prior_class_distrib = [0.47494201646277684, 0.5250579835372231]
+    std::vector<double> safeGetDoubleArrayProperty(const std::string &name) {
+        // Strip leading '['
+        std::string line = safeGetStringProperty(name);
+        std::string::size_type idx = line.find("[");
+        if (idx != 0) {
+            throw std::invalid_argument("safeGetDoubleArrayProperty: missing [.");
+        }
+        line.erase(idx, 1);
+
+        // Strip trailing ']'
+        idx = line.find("]");
+        if (idx != line.size()-1) {
+            throw std::invalid_argument("safeGetDoubleArrayProperty: missing ].");
+        }
+        line.erase(idx, 1);
+
+        // Peel off one number at a time based on the ", " separator.
+        std::vector<double> doubleArr;
+        std::string::size_type startPos = 0;
+        while (true) {
+            if (startPos >= line.size()) {
+                break;
+            }
+
+            idx = line.find(", ", startPos);
+            if (idx == std::string::npos) {
+                std::string tmp = line.substr(startPos);
+                double d = std::stod(tmp);
+                doubleArr.push_back(d);
+                break;
+            }
+
+            std::string tmp = line.substr(startPos, idx-startPos);
+            double d = std::stod(tmp);
+            doubleArr.push_back(d);
+
+            startPos = idx + 2;
+        }
+
+        return doubleArr;
+    }
+
     std::string safeGetStringProperty(const std::string &name) {
         safeCheckPropertyExists(name);
         return _info.properties[name];
@@ -203,6 +252,13 @@ protected:
 
 public:
     virtual void read(MojoReaderBackend &be) = 0;
+
+    MojoModel() :
+        _nfeatures(-999),
+        _nclasses(-999),
+        _balanceClasses(false),
+        _defaultThreshold(-999.0)
+    {}
 
     virtual ~MojoModel() {}
 
@@ -216,6 +272,14 @@ public:
 
     virtual bool balanceClasses() const {
         return _balanceClasses;
+    }
+
+    double defaultThreshold() const {
+        return _defaultThreshold;
+    }
+
+    const std::vector<double> &priorClassDistrib() const {
+        return _priorClassDistrib;
     }
 
     virtual bool isClassifier() const {

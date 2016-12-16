@@ -31,7 +31,7 @@ private:
 
     static double scoreTree(const VectorOfBytes &tree, const std::vector<double> &row, int nclasses, bool computeLeafAssignment) {
         ByteBufferWrapper ab = ByteBufferWrapper(tree);
-        GenmodelBitSet bs;
+        GenmodelBitSet bs(0);
         long bitsRight = 0;
         int level = 0;
         while (true) {

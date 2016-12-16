@@ -12,6 +12,14 @@ private:
     int _position;
 
 public:
+    // This should be static_assert(), but that fails to compile under gcc -Wall -Werror.
+    // So do this instead every time a mojo is created, which isn't so bad.
+    static void performSanityChecks() {
+        if (sizeof(float) != 4) {
+            throw std::invalid_argument("expected float size to be 4");
+        }
+    }
+
     ByteBufferWrapper(const VectorOfBytes &v) :
         _v(v),
         _position(0)
@@ -36,7 +44,6 @@ public:
     }
 
     float get4f() {
-        static_assert(sizeof(float) == 4);
         uint8_t buf[4];
 #if _LIBCPP_BIG_ENDIAN == 1
 #error Note:  Big endian never tested.  Remove this error and test.
@@ -61,6 +68,10 @@ public:
             throw std::invalid_argument("ByteBufferWrapper skip too big");
         }
         _position += n;
+    }
+
+    int position() {
+        return _position;
     }
 };
 
