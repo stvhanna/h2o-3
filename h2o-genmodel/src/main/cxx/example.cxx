@@ -13,6 +13,9 @@ int main(int argc, char **argv) {
     std::vector<double> pred2;
     pred2.resize(rawModel->getPredsSize());
     rawModel->score0(row2, pred2);
+    for (int i = 0; i < pred2.size(); i++) {
+        printf("%.16f\n", pred2[i]);
+    }
 
     h2o::EasyPredictModelWrapper model(rawModel);
 
