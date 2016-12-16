@@ -26,13 +26,13 @@ public:
         if (bitoff + nbits <= 32) {
             bitoff = 0;
             nbits = 32;
-    }
+        }
 
         // TODO: don't stack allocate and copy this in fill().
         VectorOfBytes v;
         if (nbits <= 0) {
             v.resize(0);
-    }
+        }
         else {
             v.resize(bytes(nbits));
         }
