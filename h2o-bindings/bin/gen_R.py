@@ -129,7 +129,7 @@ def gen_module(schema, algo, module):
     yield "           error = function(err) {"
     yield "             stop(\"argument \'training_frame\' must be a valid H2OFrame or key\")"
     yield "           })"
-    if algo != "stackedensemble":
+    if algo not in ["stackedensemble", "word2vec"]:
         yield "  # Validation_frame must be a key or an H2OFrame object"
         yield "  if (!is.null(validation_frame)) {"
         yield "     if (!is.H2OFrame(validation_frame))"
@@ -266,6 +266,10 @@ def help_preamble_for(algo):
     if algo == "svd":
         return """
         Singular value decomposition of an H2O data frame using the power method.
+    """
+    if algo == "word2vec":
+        return """
+        Trains a word2vec model on a String column of an H2O data frame.
     """
 
 def help_details_for(algo):
