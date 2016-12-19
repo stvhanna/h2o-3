@@ -155,6 +155,16 @@ public class GLRMModel extends Model<GLRMModel, GLRMModel.GLRMParameters, GLRMMo
     // Training time
     public ArrayList<Long> _training_time_ms = new ArrayList<>();
 
+    // Total column variance for expanded and transformed data
+    public double _total_variance;
+
+    // Standard deviation of each principal component
+    public double[] _std_deviation;
+
+    // Importance of principal components
+    // Standard deviation, proportion of variance explained, and cumulative proportion of variance explained
+    public TwoDimTable _importance;
+
     public GLRMOutput(GLRM b) { super(b); }
 
     /** Override because base class implements ncols-1 for features with the
@@ -381,7 +391,7 @@ public class GLRMModel extends Model<GLRMModel, GLRMModel.GLRMParameters, GLRMMo
     fullFrm.add(loadingFrm);
 
     GLRMScore gs = new GLRMScore(ncols, _parms._k, false).doAll(fullFrm);
-    ModelMetrics mm = gs._mb.makeModelMetrics(GLRMModel.this, adaptedFr, null, null);   // save error metrics based on imputed data
+    ModelMetrics mm = gs._mb.makeModelMetrics(GLRMModel.this, frame, null, null);   // save error metrics based on imputed data
     return (ModelMetricsGLRM) mm;
   }
 

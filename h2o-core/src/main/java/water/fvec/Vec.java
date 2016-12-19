@@ -155,6 +155,8 @@ import java.util.UUID;
  * @author Cliff Click
  */
 public class Vec extends Keyed<Vec> {
+  public interface Holder { Vec vec(); }
+  
   // Vec internal type: one of T_BAD, T_UUID, T_STR, T_NUM, T_CAT, T_TIME
   byte _type;                   // Vec Type
 
@@ -175,6 +177,7 @@ public class Vec extends Keyed<Vec> {
   // bytesize) bounces through the DKV to fetch the latest copy of the Rollups
   // - lest a Vec.set changes the rollups and we return a stale copy.
   transient private Key _rollupStatsKey;
+  private boolean _volatile;
 
   /** Returns the categorical toString mapping array, or null if not an categorical column.
    *  Not a defensive clone (to expensive to clone; coding error to change the
@@ -311,7 +314,11 @@ public class Vec extends Keyed<Vec> {
   }
   /** Make a new zero-filled vector with the given row count. 
    *  @return New zero-filled vector with the given row count. */
-  public static Vec makeZero( long len ) { return makeCon(0d,len); }
+  public static Vec makeZero( long len ) { return makeZero(len, T_NUM); }
+
+  public static Vec makeZero(long len, byte typeCode) {
+    return makeCon(0.0, len, true, typeCode);
+  }
 
   /** Make a new constant vector with the given row count, and redistribute the data
    * evenly around the cluster.
@@ -337,15 +344,19 @@ public class Vec extends Keyed<Vec> {
   /** Make a new constant vector with the given row count. 
    *  @return New constant vector with the given row count. */
   public static Vec makeCon(double x, long len, boolean redistribute) {
+    return makeCon(x,len,redistribute, T_NUM);
+  }
+
+  public static Vec makeCon(double x, long len, boolean redistribute, byte typeCode) {
     int log_rows_per_chunk = FileVec.DFLT_LOG2_CHUNK_SIZE;
-    return makeCon(x, len, log_rows_per_chunk, redistribute, T_NUM);
+    return makeCon(x,len,log_rows_per_chunk,redistribute, typeCode);
   }
 
   /** Make a new constant vector with the given row count, and redistribute the data evenly
    *  around the cluster.
    *  @return New constant vector with the given row count. */
   public static Vec makeCon(double x, long len, int log_rows_per_chunk) {
-    return makeCon(x, len, log_rows_per_chunk, true, T_NUM);
+    return makeCon(x,len,log_rows_per_chunk,true);
   }
 
   /**
@@ -557,6 +568,61 @@ public class Vec extends Keyed<Vec> {
   }
 
   public Vec [] makeZeros(int n){return makeZeros(n,null,null);}
+
+  /**
+   * Make a temporary work vec of double [] .
+   * Volatile vecs can only be used locally (chunks do not serialize) and are assumed to change frequently(MRTask call preWiting() by default).
+   * Chunks stores as C8DVolatileChunk - expose data directly as double [].
+   *
+   * @param n number of columns
+   * @return
+   */
+  public Vec [] makeVolatileDoubles(int n){
+    Vec [] vecs = makeZeros(n);
+    for(Vec v:vecs) {
+      v._volatile = true;
+      DKV.put(v);
+    }
+    new MRTask(){
+      @Override public void map(Chunk [] cs){
+        int len = cs[0].len();
+        for(int i = 0; i < cs.length; ++i) {
+          cs[i].setVolatile(MemoryManager.malloc8d(len));
+        }
+      }
+    }.doAll(vecs);
+
+    return vecs;
+  }
+
+  /**
+   * Make a temporary work vec of int [] .
+   * Volatile vecs can only be used locally (chunks do not serialize) and are assumed to change frequently(MRTask call preWiting() by default).
+   * Chunks stores as C4VolatileChunk - expose data directly as int [].
+   *
+   * @param cons integer array with constant used to fill each column.
+   * @return
+   */
+  public Vec [] makeVolatileInts(final int [] cons){
+    Vec [] vecs = makeZeros(cons.length);
+    for(Vec v:vecs) {
+      v._volatile = true;
+      DKV.put(v);
+    }
+    new MRTask(){
+      @Override public void map(Chunk [] cs){
+        int len = cs[0].len();
+        for(int i = 0; i < cs.length; ++i) {
+          int [] vals = MemoryManager.malloc4(len);
+          Arrays.fill(vals,cons[i]);
+          cs[i].setVolatile(vals);
+        }
+      }
+    }.doAll(vecs);
+
+    return vecs;
+  }
+
   public Vec [] makeZeros(int n, String [][] domain, byte[] types){ return makeCons(n, 0, domain, types);}
 
   // Make a bunch of compatible zero Vectors
@@ -768,6 +834,8 @@ public class Vec extends Keyed<Vec> {
    *  @return Checksum of the Vec's content  */
   @Override protected long checksum_impl() { return rollupStats()._checksum;}
 
+  public boolean isVolatile() {return _volatile;}
+
 
   private static class SetMutating extends TAtomic<RollupStats> {
     @Override protected RollupStats atomic(RollupStats rs) {
@@ -845,6 +913,7 @@ public class Vec extends Keyed<Vec> {
     return Key.make(bits);
   }
 
+  public transient int [] _cids; // local chunk ids
   /** Get a Chunk Key from a chunk-index.  Basically the index-to-key map.
    *  @return Chunk Key from a chunk-index */
   public Key chunkKey(int cidx ) { return chunkKey(_key,cidx); }
@@ -1047,7 +1116,7 @@ public class Vec extends Keyed<Vec> {
   }
 
   /** Set the element as missing the slow way.  */
-  final void setNA( long i ) {
+  public final void setNA( long i ) {
     Chunk ck = chunkForRow(i);
     ck.setNA_abs(i);
     postWrite(ck.close(ck.cidx(), new Futures())).blockForPending();
