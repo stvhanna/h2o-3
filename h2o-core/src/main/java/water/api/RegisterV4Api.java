@@ -1,5 +1,7 @@
 package water.api;
 
+import ai.h2o.cascade.CascadeHandlers;
+
 /**
  * Master-class for v4 REST APIs
  */
@@ -17,16 +19,23 @@ public class RegisterV4Api extends AbstractRegister {
 
 
     //------------ Rapids ----------------------------------------------------------------------------------------------
+
     RequestServer.registerEndpoint("newSession4",
         "POST /4/sessions",
-        RapidsHandler.class, "startSession",
-        "Start a new Rapids session, and return the session id."
+        CascadeHandlers.StartSession.class, "exec",
+        "Start a new Cascade/Rapids session, and return the session id."
     );
 
     RequestServer.registerEndpoint("endSession4",
         "DELETE /4/sessions/{session_key}",
         RapidsHandler.class, "endSession",
         "Close the Rapids session."
+    );
+
+    RequestServer.registerEndpoint("runCascade",
+        "POST /4/cascade",
+        CascadeHandlers.Run.class, "exec",
+        "Run a Cascade command."
     );
 
 

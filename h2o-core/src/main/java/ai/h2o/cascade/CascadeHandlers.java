@@ -1,10 +1,13 @@
 package ai.h2o.cascade;
 
+import ai.h2o.cascade.vals.Val;
 import water.api.Handler;
 import water.api.schemas4.OutputSchemaV4;
 import water.api.schemas4.input.CascadeCloseSessionIV4;
 import water.api.schemas4.input.CascadeIV4;
 import water.api.schemas4.input.CascadeSessionIV4;
+import water.api.schemas4.output.CascadeErrorV4;
+import water.api.schemas4.output.CascadeNumOV4;
 import water.api.schemas4.output.CascadeOV4;
 import water.api.schemas4.output.CascadeSessionOV4;
 
@@ -45,6 +48,17 @@ public abstract class CascadeHandlers {
 
       CascadeSession sess;
       synchronized (sess = SESSIONS.get(sessionId)) {
+
+        Val v;
+        try {
+          v = Cascade.eval(input.cascade, sess);
+        } catch (CascadeParser.CascadeSyntaxError e) {
+          return new CascadeErrorV4(e);
+        }
+
+        switch (v.type()) {
+          case NUM: return new CascadeNumOV4(v.getNum());
+        }
 
         return new CascadeOV4();
       }
