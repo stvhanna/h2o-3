@@ -190,7 +190,8 @@ public class Word2VecModel extends Model<Word2VecModel, Word2VecParameters, Word
       Collections.sort(wordCountList, new Comparator<Map.Entry<BufferedString, IcedLong>>() {
         @Override
         public int compare(Map.Entry<BufferedString, IcedLong> o1, Map.Entry<BufferedString, IcedLong> o2) {
-          return Long.compare(o1.getValue()._val, o2.getValue()._val);
+          long x = o1.getValue()._val; long y = o2.getValue()._val;
+          return (x < y) ? -1 : ((x == y) ? 0 : 1);
         }
       });
 
