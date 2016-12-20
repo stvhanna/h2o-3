@@ -267,6 +267,10 @@ def help_preamble_for(algo):
         return """
         Singular value decomposition of an H2O data frame using the power method.
     """
+    if algo == "word2vec":
+        return """
+        Trains a word2vec model on a String column of an H2O data frame.
+    """
 
 def help_details_for(algo):
     if algo == "naivebayes":
