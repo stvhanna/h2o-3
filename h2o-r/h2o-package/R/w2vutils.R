@@ -1,10 +1,10 @@
-##
-## Find synonyms using a word2vec model.
-##
-##  @param word2vec: A word2vec model.
-##  @param target: Single word to find synonyms for.
-##  @param count: The top `count` synonyms will be returned.
-##
+#'
+#' Find synonyms using a word2vec model.
+#'
+#' @param word2vec A word2vec model.
+#' @param target Single word to find synonyms for.
+#' @param count The top `count` synonyms will be returned.
+#' @export
 h2o.findSynonyms <- function(word2vec, target, count = 20) {
     if (missing(target)) stop("`target` must be specified")
     if (!is.character(target)) stop("`target` must be character")
