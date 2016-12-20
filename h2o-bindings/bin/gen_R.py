@@ -129,7 +129,7 @@ def gen_module(schema, algo, module):
     yield "           error = function(err) {"
     yield "             stop(\"argument \'training_frame\' must be a valid H2OFrame or key\")"
     yield "           })"
-    if algo != "stackedensemble":
+    if algo not in ["stackedensemble", "word2vec"]:
         yield "  # Validation_frame must be a key or an H2OFrame object"
         yield "  if (!is.null(validation_frame)) {"
         yield "     if (!is.H2OFrame(validation_frame))"

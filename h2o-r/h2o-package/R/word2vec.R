@@ -33,14 +33,6 @@ h2o.word2vec <- function(training_frame, x,
            error = function(err) {
              stop("argument 'training_frame' must be a valid H2OFrame or key")
            })
-  # Validation_frame must be a key or an H2OFrame object
-  if (!is.null(validation_frame)) {
-     if (!is.H2OFrame(validation_frame))
-         tryCatch(validation_frame <- h2o.getFrame(validation_frame),
-             error = function(err) {
-                 stop("argument 'validation_frame' must be a valid H2OFrame or key")
-             })
-  }
   # Parameter list to send to model builder
   parms <- list()
   parms$training_frame <- training_frame
